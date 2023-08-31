@@ -1,5 +1,7 @@
 # CircuitPython WiFi example
 
+*Note:* This code requires CircuitPython 8 or higher.
+
 Copy `lib/adafruit_requests.mpy` from your CircuitPython library bundle into the
 `lib` directory on your CircuitPython device.
 

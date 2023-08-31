@@ -1,6 +1,6 @@
 # Example server
 
-This is a very simple flask-based server that shows how to set up a very simple logging server.
+This is a very simple flask-based server that shows how to set up a bare bones logging server.
 
 To set up the server: `pip install -r requirements.txt`
 
