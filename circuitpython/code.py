@@ -4,8 +4,11 @@ import ipaddress
 import wifi
 import socketpool
 import board
+import time
+import gc
+import random
 
-import adafruit_requests as requests
+import adafruit_requests
 
 # load the configuration settings from settings.toml
 settings = {} 
@@ -16,62 +19,46 @@ for key in settings_keys:
         print(f'Missing {key} setting in settings.toml')
         sys.exit(1)
 
-# URLs to fetch from
+# URL construction info 
 HOST = settings["LOGGING_HOST"]
 PORT = settings["LOGGING_PORT"] 
-TIMEOUT = 5
-INTERVAL = 5
-MAXBUF = 256
+PATH="/log"
+URL = f'http://{HOST}:{PORT}{PATH}'
+print(f'Base URL is {URL}')
+
+
+# set up the requests object 
+pool = socketpool.SocketPool(wifi.radio)
+requests = adafruit_requests.Session(pool)
+
 
 # connect to WiFi 
 WIFI_SSID = settings["WIFI_SSID"]
 WIFI_PASSWORD = settings["WIFI_PASSWORD"]
 print(f'Connecting to {WIFI_SSID}')
-wifi.radio.connect(WIFI_SSID, WIFI_PASSWORD)
-print(f'Connected to {WIFI_SSID}')
+while not wifi.radio.ipv4_address:
+    try:
+        wifi.radio.connect(WIFI_SSID, WIFI_PASSWORD)
+    except ConnectionError as e:
+        print("Connection Error:", e)
+        print("Retrying in 10 seconds")
+    time.sleep(10)
+    gc.collect()
+print("Connected!\n")
 
-while True:
-    pass
 
 """
-pool = socketpool.SocketPool(wifi.radio)
-
-ipv4 = ipaddress.ip_address(pool.getaddrinfo(HOST, PORT)[0][4][0])
-
-buf = bytearray(MAXBUF)
-
-print("Create TCP Client Socket")
-s = pool.socket(pool.AF_INET, pool.SOCK_STREAM)
-
-print("Connecting")
-s.connect((HOST, PORT))
-
-PATH="/log"
-
-def get_request(x,y,z):
-    # creates an HTTP GET request for the given data
-    #
-    # :param float x: x value
-    # :param float y: y value
-    # :param float z: z value
-    #
-    # This example uses 3 hypothetical float values named x, y, and z. Add/change  as appropriate for your usage
-    #
-
-    # create a request of the form "GET /log?x=1.2345&y=2.3456&z=3.4567" 
-    request = f'GET {PATH}?x={x}&y={y}&z={z}\n'
-    return request
-
-
-while True:
-        #  message with updated values is sent via socket to Pd
-        #  all Pd messages need to end with a ";"
-        size = s.send(str.encode(' '.join(["x", str(x_map), ";",
-                                           "y", str(y_map), ";",
-                                           "aX", str(acc_x), ";",
-                                           "aY", str(acc_y), ";",
-                                           "n", str(note), ";"])))
-        #  new_val is reset
-        new_val = False
-
+The main loop of this program will generate random values of
+x, y, and z, send them to the server, sleep for 5 seconds, 
+and do the same thing again indefinitely
 """
+while True:
+    x = random.random() * 10
+    y = random.random() * 10
+    z = random.random() * 10
+    log_url = f'{URL}?x={x}&y={y}&z={z}'
+    print(f'request: {log_url}')
+    response = requests.get(log_url)
+    print(f'response: {response.status_code} {response.reason.decode('utf-8')}') 
+    time.sleep(5)
+
