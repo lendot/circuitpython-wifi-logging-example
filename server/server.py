@@ -1,51 +1,62 @@
+"""
+Example web server using python and flask
+
+This server listens for HTTP requests on this machine, by default on port 5000,
+and writes the data received to a csv file along with a timestamp and ip address.
+The data comes as 3 request paramenters, x, y, and z, all of which are assumed
+to be floating point numbers.
+"""
+
+
 import time
 from flask import Flask,request
 import csv
 
 
-# where to store the data. We'll use a csv file
-LOG_FILE = "data.csv"
-
-
 def create_app(test_config = None, prod = True):
     """ application factory; creates and initializes the server """
 
-    # where to store the data. We'll use a csv file. Change the name as needed
+    # where to store the data. We'll use a csv file. Change as needed. 
     LOG_FILE = "data.csv"
 
 
+    # create the web app object
     app = Flask(__name__)
 
+    # ==========================================================================
     # put server initialization code here (log file setup, db connections, etc)
 
     # initialize the csv file for storing data
     print(f'Writing data to {LOG_FILE}')
-    
     with open(LOG_FILE,'w') as logfile:
-        csv_writer = csv.writer(logfile,delimiter=',')
-        csv_writer.writerow(['timestamp','x','y','z'])
+        csv_writer = csv.writer(logfile,delimiter=',',quoting=csv.QUOTE_NONNUMERIC)
+        csv_writer.writerow(['timestamp','ip','x','y','z'])
 
+
+    # put the log file location into the application config so that other parts
+    # of the app can access it
     app.config.update(
             LOG_FILE = LOG_FILE 
     )
 
-    """
-    This is the listener for the root URL of the server (http://[server_address]/)
-    It isn't used for anything here, but it's good to at least have a placeholder. 
-    """
+    # end server initialization code
+    # ==========================================================================
+
     @app.route("/")
     def index():
+        """
+        This is the listener for the root URL of the server (http://[server_address]/)
+        It isn't used for anything here, but it's good to at least have a placeholder there. 
+        """
         return "<p>Hello, World! This is an example server</p>"
 
-    """
-    This is the URL that logging data will be sent to. (http://[server_address]/log)
-    It supports both GET and POST mmethods, so the devices can use either of those.
-    GET is fine for starters and is a little easier to debug, but if the data being
-    sent starts getting complex, it might make more sense to switch to POST
-    """
+
     @app.route("/log",methods=['GET','POST'])
     def log():
-
+        """
+        This is the URL that logging data will be sent to (http://[server_address]/log).
+        """
+     
         # get the parameters. In this example they are x, y, and z. Add/change as appropriate
         # for your project 
         x_str = request.args.get('x')
@@ -61,17 +72,25 @@ def create_app(test_config = None, prod = True):
         if z_str is not None:
             z = float(z_str)
 
+        # get the current time as HH:MM:SS
         timestamp = time.strftime("%H:%M:%S", time.localtime())
              
-        print(f'({timestamp},{x},{y},{z})')
+        # get the client's IP address
+        ip_addr = request.remote_addr
 
-        # put the data in the csv file
+        print(f'{timestamp}  {ip_addr}  ({x}, {y}, {z})')
+
+        # Write the data to the csv file.
         logfile = app.config['LOG_FILE']
         with open(logfile,'a') as csv_file:
-            csv_writer = csv.writer(csv_file,delimiter=',')
-            csv_writer.writerow([timestamp,x,y,z])
+            csv_writer = csv.writer(csv_file,delimiter=',',quoting=csv.QUOTE_NONNUMERIC)
+            csv_writer.writerow([timestamp,ip_addr,x,y,z])
 
-
+        """
+        What this statement returns is the content that gets sent back to the client.
+        In this example, the CircuitPython device only cares about the HTTP status code, so 
+        we can just set it to whatever
+        """
         return "logging complete"
 
     return app
