@@ -1,3 +1,4 @@
+import time
 from flask import Flask,request
 import csv
 
@@ -22,22 +23,25 @@ def create_app(test_config = None, prod = True):
     
     with open(LOG_FILE,'w') as logfile:
         csv_writer = csv.writer(logfile,delimiter=',')
-        csv_writer.writerow(['x','y','z'])
+        csv_writer.writerow(['timestamp','x','y','z'])
 
     app.config.update(
             LOG_FILE = LOG_FILE 
     )
 
-
+    """
+    This is the listener for the root URL of the server (http://[server_address]/)
+    It isn't used for anything here, but it's good to at least have a placeholder. 
+    """
     @app.route("/")
     def index():
         return "<p>Hello, World! This is an example server</p>"
 
     """
-    This is the URL that logging data will be sent to. It supports both GET and POST
-    methods, so the devices can use either of those. GET is fine for starters and is a 
-    little easier to debug, but if the data being sent starts getting complex, it might
-    make more sense to switch to POST
+    This is the URL that logging data will be sent to. (http://[server_address]/log)
+    It supports both GET and POST mmethods, so the devices can use either of those.
+    GET is fine for starters and is a little easier to debug, but if the data being
+    sent starts getting complex, it might make more sense to switch to POST
     """
     @app.route("/log",methods=['GET','POST'])
     def log():
@@ -56,18 +60,19 @@ def create_app(test_config = None, prod = True):
             y = float(y_str)
         if z_str is not None:
             z = float(z_str)
+
+        timestamp = time.strftime("%H:%M:%S", time.localtime())
              
-        print(f'({x},{y},{z})')
+        print(f'({timestamp},{x},{y},{z})')
 
         # put the data in the csv file
         logfile = app.config['LOG_FILE']
         with open(logfile,'a') as csv_file:
             csv_writer = csv.writer(csv_file,delimiter=',')
-            csv_writer.writerow([x,y,z])
+            csv_writer.writerow([timestamp,x,y,z])
 
 
-
-        return "<p>this is the data logging URL</p>"
+        return "logging complete"
 
     return app
 
