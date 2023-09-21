@@ -44,6 +44,13 @@ while not wifi.radio.ipv4_address:
         gc.collect()
 print("Connected!\n")
 
+print(f'IP Address: {wifi.radio.ipv4_address}')
+print(f'Subnet    : {wifi.radio.ipv4_subnet}')
+print(f'Gateway   : {wifi.radio.ipv4_gateway}')
+print(f'RSSI      : {wifi.radio.ap_info.rssi}')
+print("")
+
+
 
 """
 The main loop of this program generates random values for 3 variables, x, y, and z, 
